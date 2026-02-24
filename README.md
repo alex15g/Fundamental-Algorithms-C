@@ -13,6 +13,8 @@ A key feature of this repository is the use of a custom **Profiler** tool (`Prof
 - **Cases**: Analysis is performed for **Best**, **Average**, and **Worst** scenarios.
 - **Visualization**: The generated data can be used to create charts that experimentally validate theoretical time complexities like $O(n^2)$ or $O(n \log n)$.
 
+> [!NOTE]
+> The `Profiler.h` library is a testing utility provided by the university department. It was used to instrument the code and collect execution metrics for benchmarking purposes, allowing me to focus on algorithm implementation and theoretical validation.
 ---
 
 ## 🚀 Repository Contents
