@@ -47,5 +47,6 @@ A key feature of this repository is the use of a custom **Profiler** tool (`Prof
 ├── 04-Advanced-Trees/     # Multi-way trees & Order statistics
 ├── 05-Disjoint-Sets/      # Union-Find structures
 ├── 06-Graphs/             # BFS and DFS implementations
+├── Analysis_reports/      # Screenshots with the plots
 ├── utils/                 # Profiler.h and analysis tools
 └── README.md
