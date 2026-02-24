@@ -1,0 +1,312 @@
+
+
+/*
+*Gavris Alexandru Catalin 30222
+*Am implementat 4 algoritmi de sortare: Bubble Sort, Insertion Sort, Insertion Binary, Selection Sort.
+*Am efectuat analiza in cele 3 cazuri cerute: average, best, worst (am facut media in toate cele 3 cazuri, chiar daca doar la average se cerea, pt a avea o comparatie mai buna)
+*Pt fiecare caz, am contorizat comparatiile, atribuirile si suma lor si am creat graficele comparative
+*Cei 4 algoritmi sunt implementati corecti si testati pe exemple mici in functias demo
+* 
+* INTERPRETARE GRAFICE:
+* pt average: toti cei 4 algoritmi au complexitate O(n^2), iar cel mai eficient ar fi insertion binary, cel mai putin efiecient ar fi bubble
+* pt worst: aproximativ la fel ca la average
+* pt best: bubble, insertion si insertion binary au complexitate O(n), iar selection ramane la O(n^2)
+*Cu cat dimensiunile sunt mai mari, diferentele dintre algoritmi se evidentiaza pe grafice
+*/
+#include<stdio.h>
+#include "Profiler.h"
+
+#define max_size 10000
+#define step_size 50
+#define nr_tests 5
+
+Profiler p("sortari");
+
+
+void bubblesort(int v[], int n) {
+	Operation opComp = p.createOperation("v1-comp", n);
+	Operation opAtr=p.createOperation("v1-atr", n);
+	
+	int schimbat;
+	for (int i = 0; i < n-1; i++) {
+		schimbat = 0;
+		for (int j = 0; j < n - i - 1; j++) {
+			opComp.count();
+			if (v[j] > v[j + 1]) {
+				opAtr.count();
+				opAtr.count();
+				opAtr.count();
+				int aux = v[j];
+				v[j] = v[j + 1];
+				v[j + 1] = aux;
+				schimbat = 1;
+			}
+		}
+		if (schimbat == 0) {
+			//printf("sirul e deja ordonat crescator");
+			return;
+		}
+	}
+}
+
+void insertionsort(int v[], int n) {
+	Operation opComp = p.createOperation("v2-comp", n);
+	Operation opAtr = p.createOperation("v2-atr", n);
+	for (int i = 0; i < n ; i++) {
+		opAtr.count();
+		int key = v[i];
+		int j = i - 1;
+			while (j>=0) {
+				opComp.count();
+				if (v[j] > key) {
+					v[j + 1] = v[j];
+					opAtr.count();
+					j--;
+				}
+				else break;
+			}
+			opAtr.count();
+			v[j + 1] = key;
+	}
+}
+
+void selectionsort(int v[], int n){
+	Operation opComp = p.createOperation("v3-comp", n);
+	Operation opAtr = p.createOperation("v3-atr", n);
+	int i, pmin;
+	for ( i = 0; i < n; i++) {
+		pmin = i;
+		for (int j = i + 1; j < n; j++) {
+			opComp.count();
+			if (v[j] < v[pmin]) pmin = j;
+		}
+		
+		if (pmin != i) {
+			opAtr.count(3);
+			int aux = v[i];
+			v[i] = v[pmin];
+			v[pmin] = aux;
+		}
+	}
+}
+
+
+void insertionsortbinary(int v[], int n) {
+	Operation opComp = p.createOperation("v4-comp", n);
+	Operation opAtr = p.createOperation("v4-atr", n);
+	int key;
+	for (int j = 1; j < n; j++) {
+		opAtr.count();
+		key = v[j];
+
+		int low = 0;
+		int high = j - 1;
+
+		while (low <= high) {
+			int mid = (low + high) / 2;
+			opComp.count();
+			if (key > v[mid])
+				low = mid + 1;
+			else
+				high = mid - 1;
+		}
+
+		int i = j - 1;
+		while (i >= low) {
+			opAtr.count();
+			v[i + 1] = v[i];
+			i--;
+		}
+
+		opAtr.count();
+		v[i + 1] = key;
+	}
+}
+
+
+void demo() {
+	int v[] = {7, 9, 5, 9, 28, 3, 66, 10, 0, 99 };
+	int b[] = {2, 10, 5, 9, 39, 3, 66, 10, 120, 99 };
+	int c[] = {7, 9, 35, 19, 28, 38, 5, 10, 0, 400 };
+	int d[] = { 11, 9, 35, 19, 28, 38, 5, 109, 88, 400 };
+
+	
+	int n = sizeof(v) / sizeof(int);
+	bubblesort(v, n);
+	
+	printf("sirul ordonat crescator dupa bubble sort este:");
+	for (int i = 0; i < n; i++) printf("%d ", v[i]);
+	printf("\n");
+
+	selectionsort(b, n);
+	printf("sirul ordonat crescator dupa selection sort este:");
+	for (int i = 0; i < n; i++) printf("%d ", b[i]);
+	printf("\n");
+
+
+	insertionsort(c, n);
+	printf("sirul ordonat crescator dupa insertion sort este:");
+	for (int i = 0; i < n; i++) printf("%d ", c[i]);
+	printf("\n");
+
+	insertionsortbinary(d, n);
+	printf("sirul ordonat crescator dupa insertion sort binary este:");
+	for (int i = 0; i < n; i++) printf("%d ", d[i]);
+
+}
+
+void perf_average() {
+	p.reset("average");
+	int v[max_size];
+	int n;
+	for (n = step_size; n <= max_size; n += step_size) {
+		for (int j = 0; j < nr_tests; j++) {
+			FillRandomArray(v, n);
+			int copsel[max_size], copins[max_size], copinsb[max_size];
+			for (int i = 0; i < n; i++) {
+				copsel[i] = v[i];
+				copins[i] = v[i];
+				copinsb[i] = v[i];
+			}
+			bubblesort(v, n);
+			selectionsort(copsel, n);
+			insertionsort(copins, n);
+			insertionsortbinary(copinsb, n);
+		}
+	}
+
+	p.divideValues("v1-atr", nr_tests);
+	p.divideValues("v1-comp", nr_tests);
+
+	p.divideValues("v2-atr", nr_tests);
+	p.divideValues("v2-comp", nr_tests);
+
+	p.divideValues("v3-atr", nr_tests);
+	p.divideValues("v3-comp", nr_tests);
+
+	p.divideValues("v4-atr", nr_tests);
+	p.divideValues("v4-comp", nr_tests);
+
+
+	p.addSeries("bubble", "v1-comp", "v1-atr");
+	p.addSeries("insertion", "v2-comp", "v2-atr");
+	p.addSeries("selection", "v3-comp", "v3-atr");
+	p.addSeries("insertionbinary", "v4-comp", "v4-atr");
+
+	p.createGroup("atr", "v1-atr", "v2-atr", "v3-atr", "v4-atr");
+	p.createGroup("comp", "v1-comp", "v2-comp", "v3-comp", "v4-comp");
+	p.createGroup("total", "bubble", "insertion", "selection", "insertionbinary");
+
+	//p.showReport();
+}
+
+void perf_best() {
+	p.reset("best");
+	int v[max_size];
+	int n, min=0, max=50000, sort=1;
+	bool uniq = false;
+	for (n = step_size; n <= max_size; n += step_size) {
+		for (int j = 0; j < nr_tests; j++) {
+			FillRandomArray(v, n, min, max, uniq, sort);
+			int copsel[max_size], copins[max_size], copinsb[max_size];
+			for (int i = 0; i < n; i++) {
+				copsel[i] = v[i];
+				copins[i] = v[i];
+				copinsb[i] = v[i];
+			}
+			bubblesort(v, n);
+			selectionsort(copsel, n);
+			insertionsort(copins, n);
+			insertionsortbinary(copinsb, n);
+		}
+	}
+
+	p.divideValues("v1-atr", nr_tests);
+	p.divideValues("v1-comp", nr_tests);
+
+	p.divideValues("v2-atr", nr_tests);
+	p.divideValues("v2-comp", nr_tests);
+
+	p.divideValues("v3-atr", nr_tests);
+	p.divideValues("v3-comp", nr_tests);
+
+	p.divideValues("v4-atr", nr_tests);
+	p.divideValues("v4-comp", nr_tests);
+
+
+	p.addSeries("bubble", "v1-comp", "v1-atr");
+	p.addSeries("insertion", "v2-comp", "v2-atr");
+	p.addSeries("selection", "v3-comp", "v3-atr");
+	p.addSeries("insertionbinary", "v4-comp", "v4-atr");
+
+	p.createGroup("atr", "v1-atr", "v2-atr", "v3-atr", "v4-atr");
+	p.createGroup("comp", "v1-comp", "v2-comp", "v3-comp", "v4-comp");
+	p.createGroup("total", "bubble", "insertion", "selection", "insertionbinary");
+	//p.showReport();
+}
+
+void perf_worst() {
+	p.reset("worst");
+	int v[max_size], inv[max_size];
+	int n, min = 0, max = 50000, sort = 2;
+	bool uniq = false;
+	for (n = step_size; n <= max_size; n += step_size) {
+		for (int j = 0; j < nr_tests; j++) {
+			FillRandomArray(v, n, min, max, uniq, sort);
+			//int j = n-1;
+			//int i = 0;
+			//while (i < n && j>=0) {
+			//	inv[i] = v[j];
+			//	i++;
+			//	j--;
+			//}
+			int copsel[max_size], copins[max_size], copinsb[max_size];
+			for (int i = 0; i < n; i++) {
+				copsel[i] = v[i];
+				copins[i] = v[i];
+				copinsb[i] = v[i];
+			}
+			bubblesort(v, n);
+			selectionsort(copsel, n);
+			insertionsort(copins, n);
+			insertionsortbinary(copinsb, n);
+		}
+	}
+	p.divideValues("v1-atr", nr_tests);
+	p.divideValues("v1-comp", nr_tests);
+
+	p.divideValues("v2-atr", nr_tests);
+	p.divideValues("v2-comp", nr_tests);
+
+	p.divideValues("v3-atr", nr_tests);
+	p.divideValues("v3-comp", nr_tests);
+
+	p.divideValues("v4-atr", nr_tests);
+	p.divideValues("v4-comp", nr_tests);
+
+
+	p.addSeries("bubble", "v1-comp", "v1-atr");
+	p.addSeries("insertion", "v2-comp", "v2-atr");
+	p.addSeries("selection", "v3-comp", "v3-atr");
+	p.addSeries("insertionbinary", "v4-comp", "v4-atr");
+
+	p.createGroup("atr", "v1-atr", "v2-atr", "v3-atr", "v4-atr");
+	p.createGroup("comp", "v1-comp", "v2-comp", "v3-comp", "v4-comp");
+	p.createGroup("total", "bubble", "insertion", "selection", "insertionbinary");
+	//p.showReport();
+}
+
+int main() {
+	perf_average();
+	p.showReport();
+
+	perf_worst();
+	p.showReport();
+
+	perf_best();
+	p.showReport();
+
+	//demo();
+
+	return 0;
+}
