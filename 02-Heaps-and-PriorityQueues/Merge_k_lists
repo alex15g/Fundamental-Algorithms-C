@@ -1,0 +1,398 @@
+/*
+* Gavris Alexandru Catalin 
+* 
+* Am implementat algoritmul de interclasare a doua liste.
+* Am implementat algoritmul de interclasare eficienta a k liste ordonate folosind o structura de tip min-heap,
+* astfel incat complexitatea totala sa fie O(n log k), unde n este numarul total de elemente.
+* 
+* Etapele implementarii:
+* 1. Generarea a k liste sortate aleatoare de dimensiuni diferite, dar cu nr total fix de elemente n.
+* 2. Adaptarea operatiilor de min-heap pentru a lucra direct pe vectorul de pointeri catre liste.
+* 3. Interclasarea efectiva a listelor prin extragerea repetata a minimului din heap si actualizarea acestuia.
+* 
+* Analiza:
+* - Functia perf_1() mentine k fix si variaza n (100 -> 10000) pentru trei valori diferite ale lui k: k1=5, k2=10, k3=100.
+* - Functia perf_2() mentine n=10000 fix si variaza k intre 10 si 500, pentru a observa influenta lui k asupra complexitatii.
+* 
+* Complexitati:
+* -Fiecare inserare/extragere in/din heap costa O(log k).
+* -Se proceseaza n elemente => complexitatea totala este O(n log k).
+* 
+* Interpretare grafice:
+* - Cresterea lui k determina o crestere logaritmica
+* 
+* Algoritmul este implementat corect si testat pe exemple mici in functia demo
+*/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include "Profiler.h"
+
+#define MAX_SIZE 10000
+#define nr_tests 10
+
+Profiler p("Analiza");
+
+typedef struct Node {
+	int val;
+	struct Node* next;
+}Node;
+
+typedef struct {
+	Node* nod;
+}HeapNode;
+
+
+Node* newNode(int val) {
+	Node* p = (Node*)malloc(sizeof(Node));
+	p->val = val;
+	p->next = NULL;
+	return p;
+}
+
+
+void afisareLista(Node* first) {
+	for (Node* p = first; p != NULL; p = p->next)printf("%d ", p->val);
+	printf("\n");
+}
+
+void freeList(Node* first) {
+	while (first != NULL) {
+		Node* tmp = first;
+		first = first->next;
+		free(tmp);
+	}
+}
+
+
+void minHeapify(Node* heap[], int k, int i, Operation* opComp, Operation* opAtr) {
+	int smallest = i;
+	int left = 2 * i + 1;
+	int right = 2 * i + 2;
+
+	if (left < k) {
+		opComp->count();
+		if (heap[smallest]->val > heap[left]->val) {
+			smallest = left;
+		}
+	}
+
+	if (right < k) {
+		opComp->count();
+		if (heap[smallest]->val > heap[right]->val) {
+			smallest = right;
+		}
+	}
+	if (smallest != i) {
+		opAtr->count(3);
+		Node* aux = heap[smallest];
+		heap[smallest] = heap[i];
+		heap[i] = aux;
+		minHeapify(heap, k, smallest, opComp, opAtr);
+	}
+}
+
+void buildMinHeapBottomUp(Node* heap[], int k, Operation* opComp, Operation* opAtr) {
+	int i;
+	for (i = k / 2 - 1; i >= 0; i--) minHeapify(heap, k, i, opComp, opAtr);
+}
+
+Node* merge2Lists(Node* a, Node* b, Operation* opComp, Operation* opAtr) {
+	if (a == NULL) return b;
+	if (b == NULL) return a;
+
+	Node* head = NULL;
+	Node* tail = NULL;
+
+	opComp->count();
+	if (a->val <= b->val) {
+		opAtr->count();
+		head = a;
+		a = a->next;
+	}
+	else {
+		opAtr->count();
+		head = b;
+		b = b->next;
+	}
+	tail = head;
+
+	while (a != NULL && b != NULL) {
+		opComp->count();
+		if (a->val <= b->val) {
+			opAtr->count();
+			tail->next = a;
+			a = a->next;
+		}
+		else {
+			opAtr->count();
+			tail->next = b;
+			b = b->next;
+		}
+		tail = tail->next;
+	}
+
+	opAtr->count();
+	if (a != NULL) tail->next = a;
+	else tail->next = b;
+
+	return head;
+}
+
+
+void generareKListeSortate(Node** liste, int k, int n) {
+	if (k <= 0 || n <= 0) return;
+
+	int* dim = (int*)malloc(k * sizeof(int));
+	if (!dim) return;
+
+	int* cuts = (int*)malloc((k - 1) * sizeof(int));
+	if (!cuts) { free(dim); return; }
+
+	int contor = 0;
+	while (contor < k - 1) {
+		int r = 1 + rand() % (n - 1);
+
+		int exists = 0;
+		for (int j = 0; j < contor; j++)
+			if (cuts[j] == r) { exists = 1; break; }
+		if (!exists) cuts[contor++] = r;
+	}
+
+
+	for (int i = 0; i < k - 2; i++)
+		for (int j = i + 1; j < k - 1; j++)
+			if (cuts[i] > cuts[j]) { int tmp = cuts[i]; cuts[i] = cuts[j]; cuts[j] = tmp; }
+
+
+	dim[0] = cuts[0];
+	for (int i = 1; i < k - 1; i++)
+		dim[i] = cuts[i] - cuts[i - 1];
+	dim[k - 1] = n - cuts[k - 2];
+
+	free(cuts);
+
+
+	for (int i = 0; i < k; i++) {
+		liste[i] = NULL;
+		Node* last = NULL;
+		int val = rand() % 10;
+		for (int j = 0; j < dim[i]; j++) {
+			val += (rand() % 20) + 1;
+			Node* nod = newNode(val);
+			if (!liste[i]) {
+				liste[i] = nod;
+				last = nod;
+			}
+			else {
+				last->next = nod;
+				last = nod;
+			}
+		}
+	}
+
+	free(dim);
+}
+
+
+
+Node * mergeKLists(Node * H[], int k, int n, Operation * opAttr, Operation * opComp) {
+	buildMinHeapBottomUp(H, k, opAttr, opComp);
+	Node* res = NULL, * l = NULL;
+	int i;
+	for (i = 0; i < n; i++) {
+		if (res == NULL) {
+			opAttr->count();
+			res = H[0];
+			l = res;
+		}
+		else {
+			opAttr->count();
+			l->next = H[0];
+			l = l->next;
+		}
+		opAttr->count();
+		H[0] = H[0]->next;
+		opComp->count();
+		if (H[0] == NULL) {
+			opAttr->count();
+			H[0] = H[k - 1];
+			k--;
+		}
+		if (k > 0)minHeapify(H, k, 0, opAttr, opComp);
+	}
+	return res;
+}
+
+void demo_2Liste(Operation* opComp, Operation* opAtr) {
+	int k = 4;
+	int n = 20;
+	Node** liste = (Node**)malloc(k * sizeof(Node*));
+	if (liste == NULL) return;
+
+	printf("Generarea a %d liste sortate cu %d elemente totale:", k, n);
+	generareKListeSortate(liste, k, n);
+	printf("\n");
+
+	printf("cele doua liste pe care le interclasam sunt:");
+	for (int i = 0; i < 2; i++) {
+		printf("Lista este %d: ", i + 1);
+		afisareLista(liste[i]);
+	}
+	printf("\n");
+
+	printf("Lista finala sortata si imbinata intre cele 2 liste este: ");
+	Node* rez = merge2Lists(liste[0], liste[1], opComp, opAtr);
+	afisareLista(rez);
+	freeList(rez);
+	free(liste);
+
+}
+
+
+
+
+void demo(Operation* opComp, Operation* opAtr) {
+	int k = 4;
+	int n = 20;
+	Node** liste =(Node**)malloc(k * sizeof(Node*));
+	if (liste == NULL) return;
+
+	printf("Generarea a %d liste sortate cu %d elemente totale:", k, n);
+	generareKListeSortate(liste, k, n);
+	printf("\n");
+
+	for (int i = 0; i < k; i++) {
+		printf("Lista este %d: ", i + 1);
+		afisareLista(liste[i]);
+	}
+	printf("\n");
+
+	printf("Lista finala sortata si imbinata este: ");
+	Node* rez = mergeKLists(liste, k, n, opComp, opAtr);
+	afisareLista(rez);
+	freeList(rez);
+	free(liste);
+}
+void perf_1() {
+	Node** lists;
+	Node* rez;
+	p.reset("interclasare_kliste_kfix");
+	
+
+	int k1 = 5, k2 = 10, k3 = 100;
+
+
+	for (int n = 100; n <= 10000; n += 100) {
+		Operation opComp_kfix = p.createOperation("k1-comp", n);
+		Operation opAtr_kfix = p.createOperation("k1-atr", n);
+
+		for (int i = 0; i < nr_tests; i++) {
+			lists = (Node**)malloc(k1 * sizeof(Node*));
+			if (lists == NULL)return;
+			for (int j = 0; j < k1; j++) lists[j] = NULL;
+			generareKListeSortate(lists, k1, n);
+			rez = mergeKLists(lists, k1, n, &opComp_kfix, &opAtr_kfix);
+
+			freeList(rez);
+			free(lists);
+
+		}
+	}
+	p.divideValues("k1-comp", nr_tests);
+	p.divideValues("k1-atr", nr_tests);
+	p.addSeries("k1-total", "k1-comp", "k1-atr");
+
+	for (int n = 100; n <= 10000; n += 100) {
+		Operation opComp_kfix = p.createOperation("k2-comp", n);
+		Operation opAtr_kfix = p.createOperation("k2-atr", n);
+
+		for (int i = 0; i < nr_tests; i++) {
+			lists = (Node**)malloc(k2 * sizeof(Node*));
+			if (lists == NULL)return;
+			for (int j = 0; j < k2; j++) lists[j] = NULL;
+			generareKListeSortate(lists, k2, n);
+			rez = mergeKLists(lists, k2, n, &opComp_kfix, &opAtr_kfix);
+
+			freeList(rez);
+			free(lists);
+
+		}
+	}
+	p.divideValues("k2-comp", nr_tests);
+	p.divideValues("k2-atr", nr_tests);
+	p.addSeries("k2-total", "k2-comp", "k2-atr");
+
+	for (int n = 100; n <= 10000; n += 100) {
+		Operation opComp_kfix = p.createOperation("k3-comp", n);
+		Operation opAtr_kfix = p.createOperation("k3-atr", n);
+
+		for (int i = 0; i < nr_tests; i++) {
+			lists = (Node**)malloc(k3 * sizeof(Node*));
+			if (lists == NULL)return;
+			for (int j = 0; j < k3; j++) lists[j] = NULL;
+			generareKListeSortate(lists, k3, n);
+			rez = mergeKLists(lists, k3, n, &opComp_kfix, &opAtr_kfix);
+
+			freeList(rez);
+			free(lists);
+
+		}
+	}
+	p.divideValues("k3-comp", nr_tests);
+	p.divideValues("k3-atr", nr_tests);
+	p.addSeries("k3-total", "k3-comp", "k3-atr");
+
+	p.createGroup("k123-atr", "k1-atr", "k2-atr", "k3-atr");
+	p.createGroup("k123-comp", "k1-comp", "k2-comp", "k3-comp");
+	p.createGroup("k123-total", "k1-total", "k2-total", "k3-total");
+
+	p.showReport();
+}
+
+
+void perf_2() {
+	Node** lists;
+	Node* rez;
+	p.reset("interclasare_kliste_nfix");
+	int n, k;
+
+	n = 10000;
+
+	for (k = 10; k <= 500; k += 10) {
+		Operation opComp_nfix = p.createOperation("comp-kvar", k);
+		Operation opAtr_nfix = p.createOperation("atr-kvar", k);
+
+		for (int i = 0; i < nr_tests; i++) {
+			lists = (Node**)malloc(k * sizeof(Node*));
+			if (lists == NULL)return;
+			for (int j = 0; j < k; j++) lists[j] = NULL;
+			generareKListeSortate(lists, k, n);
+			rez = mergeKLists(lists, k, n, &opComp_nfix, &opAtr_nfix);
+
+			freeList(rez);
+			free(lists);
+
+		}
+	}
+	p.divideValues("comp-kvar", nr_tests);
+	p.divideValues("atr-kvar", nr_tests);
+	p.addSeries("total_kvar", "comp-kvar", "atr-kvar");
+
+	//free(lists);
+	p.showReport();
+
+}
+
+int main() {
+	int n = MAX_SIZE;
+	srand((unsigned int)time(NULL));
+	Operation opComp = p.createOperation("nr_comp", n);
+	Operation opAtr = p.createOperation("nr_atr", n);
+	//demo(&opComp, &opAtr);
+	demo_2Liste(&opComp, &opAtr);
+	//perf_1();
+	//perf_2();
+	return 0;
+}
