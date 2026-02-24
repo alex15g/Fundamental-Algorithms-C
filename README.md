@@ -1,5 +1,4 @@
 # 🧠 Fundamental Algorithms & Data Structures in C
-A professional collection of fundamental algorithms and data structures implemented in C, focusing on memory management, pointer manipulation, and time complexity analysis.
 
 ![C](https://img.shields.io/badge/Language-C-blue.svg)
 ![CS](https://img.shields.io/badge/Focus-Algorithm%20Analysis-orange.svg)
